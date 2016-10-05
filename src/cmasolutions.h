@@ -233,6 +233,13 @@ namespace libcmaes
     }
     
     /**
+     * \brief returns full covariance matrix. Similar to cov() but in case of linear-sized
+     *        algorithms like sep and vd, returns the full covariance matrix anyways.
+     * @return full size covariance matrix
+     */
+    dMat full_cov() const;
+
+    /**
      * \brief returns separable covariance diagonal matrix, only applicable to sep-CMA-ES algorithms.
      * @return error covariance diagonal vector
      */
@@ -276,7 +283,52 @@ namespace libcmaes
     {
       return _sepcsqinv;
     }
+
+    /**
+     * \returns the unscaled standard deviation vector
+     * Note: this is only useful to compare amond standard deviations
+     * To get the true rescaled estimate of the error, use errors()
+     * @param cmaparams parameter object that hold the genotype/phenotype transform
+     * @return unscaled standard deviation vector
+     */
+    template<class TGenoPheno=GenoPheno<NoBoundStrategy>>
+      inline dVec stds(const CMAParameters<TGenoPheno> &cmaparams) const
+    {
+      dVec phen_xmean = cmaparams.get_gp().pheno(_xmean);
+      dVec stds;
+      if (!cmaparams.is_sep() && !cmaparams.is_vd())
+	stds = _cov.diagonal().cwiseSqrt();
+      else if (cmaparams.is_sep())
+	stds = _sepcov.cwiseSqrt();
+      else if (cmaparams.is_vd())
+	stds = (dVec::Constant(cmaparams.dim(),1.0)+_v.cwiseProduct(_v)).cwiseSqrt().cwiseProduct(_sepcov);
+      dVec phen_xmean_std = cmaparams.get_gp().pheno(static_cast<dVec>(_xmean + stds));
+      return (phen_xmean_std - phen_xmean).cwiseAbs();
+    }
     
+    /**
+     * \returns standard deviation vector
+     * @param cmaparams parameter object that hold the genotype/phenotype transform
+     * @return standard deviation vector
+     */
+    template<class TGenoPheno=GenoPheno<NoBoundStrategy>>
+      inline dVec errors(const CMAParameters<TGenoPheno> &cmaparams) const
+      {
+	return std::sqrt(_sigma)*stds(cmaparams);
+      }
+
+    /**
+     * \brief returns correlation matrix
+     * @return correlation matrix
+     */
+    dMat corr() const;
+
+    /**
+     * \brief returns correlation between parameter i and j (useful in large-scale settings)
+     * @return correlation between parameter i and j
+     */
+    double corr(const int &i, const int &j) const;
+
     /**
      * \brief returns current value of step-size sigma
      * @return current step-size
@@ -284,6 +336,15 @@ namespace libcmaes
     inline double sigma() const
     {
       return _sigma;
+    }
+
+    /**
+     * \brief sets new step-size value, use with care
+     * @param sigma step-size value
+     */
+    inline void set_sigma(const double &sigma)
+    {
+      _sigma = sigma;
     }
 
     /**
@@ -411,7 +472,7 @@ namespace libcmaes
     {
       return _leigenvectors;
     }
-
+    
     /**
      * \brief print the solution object out.
      * @param out output stream
@@ -420,7 +481,7 @@ namespace libcmaes
     template <class TGenoPheno=GenoPheno<NoBoundStrategy>>
     std::ostream& print(std::ostream &out,
 			const int &verb_level=0,
-			const TGenoPheno &gp=GenoPheno<NoBoundStrategy>()) const;
+			const TGenoPheno &gp=TGenoPheno()) const;
 
   private:
     dMat _cov; /**< covariance matrix. */

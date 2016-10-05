@@ -61,7 +61,12 @@ public:
 	
 	//std::cerr << "candidate x: " << _solutions.get_candidate(r).get_x_dvec().transpose() << std::endl;
       }
-    update_fevals(candidates.cols());
+
+    int nfcalls = candidates.cols();
+    // evaluation step of uncertainty handling scheme.
+		perform_uh(candidates,phenocandidates,nfcalls);
+
+    update_fevals(nfcalls);
   }
   
   void tell()
@@ -84,6 +89,7 @@ int main(int argc, char *argv[])
 
   CMAParameters<> cmaparams(x0,sigma);
   //ESOptimizer<CMAStrategy<CovarianceUpdate>,CMAParameters<>> optim(fsphere,cmaparams);
+	cmaparams.set_uh(true);
   ESOptimizer<customCMAStrategy,CMAParameters<>> optim(fsphere,cmaparams);
   
   while(!optim.stop())

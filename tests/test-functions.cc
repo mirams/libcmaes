@@ -43,6 +43,7 @@ std::random_device rd;
 std::normal_distribution<double> norm(0.0,1.0);
 std::cauchy_distribution<double> cauch(0.0,1.0);
 std::mt19937 gen;
+std::string boundtype = "none";
 
 std::vector<std::string> &split(const std::string &s, char delim, std::vector<std::string> &elems) {
   std::stringstream ss(s);
@@ -465,7 +466,7 @@ DEFINE_double(x0,-std::numeric_limits<double>::max(),"initial value for all comp
 DEFINE_uint64(seed,0,"seed for random generator");
 DEFINE_string(alg,"cmaes","algorithm, among cmaes, ipop, bipop, acmaes, aipop, abipop, sepcmaes, sepipop, sepbipop, sepacmaes, sepaipop, sepabipop");
 DEFINE_bool(lazy_update,false,"covariance lazy update");
-DEFINE_string(boundtype,"none","treatment applied to bounds, none or pwq (piecewise linear / quadratic) transformation");
+//DEFINE_string(boundtype,"none","treatment applied to bounds, none or pwq (piecewise linear / quadratic) transformation");
 DEFINE_double(lbound,std::numeric_limits<double>::max()/-1e2,"lower bound to parameter vector");
 DEFINE_double(ubound,std::numeric_limits<double>::max()/1e2,"upper bound to parameter vector");
 DEFINE_bool(quiet,false,"no intermediate output");
@@ -484,6 +485,9 @@ DEFINE_int32(restarts,9,"maximum number of restarts, applies to IPOP and BIPOP a
 DEFINE_bool(with_gradient,false,"whether to use the function gradient when available in closed form");
 DEFINE_bool(with_num_gradient,false,"whether to use numerical gradient injection");
 DEFINE_bool(with_edm,false,"whether to compute expected distance to minimum when optimization has completed");
+DEFINE_bool(with_stds,false,"whether to compute and print the standard deviation for every parameter");
+DEFINE_bool(with_errors,false,"whether to compute the errors");
+DEFINE_bool(with_corr,false,"whether to compute and print the correlation matrix (may not fit in memory in large-scale settings)");
 DEFINE_bool(mt,false,"whether to use parallel evaluation of objective function");
 DEFINE_bool(initial_fvalue,false,"whether to compute initial objective function value at x0");
 DEFINE_int32(elitist,0,"whether to activate elistism, 0: deactivated, 1: reinjects best seen candidate, 2: initial elitism, reinjects x0, 3: on restart scheme, useful when optimizer appears to converge to a value that is higher than the best value reported along the way");
@@ -502,6 +506,7 @@ CMASolutions cmaes_opt()
   std::vector<double> lbounds = {FLAGS_lbound},ubounds = {FLAGS_ubound};
   if (FLAGS_lbound != std::numeric_limits<double>::max()/-1e2 || FLAGS_ubound != std::numeric_limits<double>::max()/1e2)
     {
+      boundtype = "pwq";
       lbounds = std::vector<double>(FLAGS_dim);
       ubounds = std::vector<double>(FLAGS_dim);
       for (int i=0;i<FLAGS_dim;i++)
@@ -626,6 +631,12 @@ CMASolutions cmaes_opt()
     }
   if (FLAGS_with_edm)
     LOG(INFO) << "EDM=" << cmasols.edm() << " / EDM/fm=" << cmasols.edm() / cmasols.best_candidate().get_fvalue() << std::endl;
+  if (FLAGS_with_stds)
+    std::cout << "stds=" << cmasols.stds(cmaparams).transpose() << std::endl;
+  if (FLAGS_with_errors)
+    std::cout << "errors=" << cmasols.errors(cmaparams).transpose() << std::endl;
+  if (FLAGS_with_corr)
+    std::cout << "correlation=" << cmasols.corr() << std::endl;
   return cmasols;
 }
 
@@ -697,13 +708,13 @@ int main(int argc, char *argv[])
       exit(1);
     }
   CMASolutions cmasols;
-  if (FLAGS_boundtype == "none")
+  if (boundtype == "none")
     {
       if (!FLAGS_linscaling)
 	cmasols = cmaes_opt<>();
       else cmasols = cmaes_opt<GenoPheno<NoBoundStrategy,linScalingStrategy>>();
     }
-  else if (FLAGS_boundtype == "pwq")
+  else if (boundtype == "pwq")
     {
       if (!FLAGS_linscaling)
 	cmasols = cmaes_opt<GenoPheno<pwqBoundStrategy>>();
@@ -711,7 +722,7 @@ int main(int argc, char *argv[])
     }
   else
     {
-      LOG(ERROR) << "Unknown boundtype " << FLAGS_boundtype << std::endl;
+      LOG(ERROR) << "Unknown boundtype " << boundtype << std::endl;
       exit(-1);
     }
 }

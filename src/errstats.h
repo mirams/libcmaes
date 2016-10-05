@@ -88,6 +88,7 @@ namespace libcmaes
 
     /**
      * \brief take a linesearch step in a given direction
+     *        Note: the search takes place in geno-space
      * @param func objective function
      * @param parameters stochastic search parameters
      * @param k dimension in which to compute profile likelihood points
@@ -120,6 +121,9 @@ namespace libcmaes
      * @param cmasol solution object that contains the previously found optima
      * @param k dimensions in which to fix parameters (i.e. search takes place in all other dimensions)
      * @param vk fixed values of parameters in dimensions of set k
+     * @param x0 initial parameter values
+     * @param pheno_x0 whether x0 is in phenotype
+     * @param pheno_vk whether vk is in phenotype
      * @return optimization solution partial object with a single candidate that is the best candidate in full dimension
      */
     static CMASolutions optimize_vpk(FitFunc &func,
@@ -127,7 +131,9 @@ namespace libcmaes
 				     const CMASolutions &cmasol,
 				     const std::vector<int> &k,
 				     const std::vector<double> &vk,
-				     const dVec &x0);
+				     const dVec &x0,
+				     const bool &pheno_x0=true,
+				     const bool &pheno_vk=true);
     
     /**
      * \brief optimizes an objective function while fixing the value of parameters in dimension k
@@ -136,13 +142,19 @@ namespace libcmaes
      * @param cmasol solution object that contains the previously found optima
      * @param k dimension into which to fix the parameter (i.e. search takes place in all other dimensions)
      * @param vk fixed value of parameter k
+     * @param x0 initial parameter values
+     * @param pheno_x0 whether x0 is in phenotype
+     * @param pheno_vk whether vk is in phenotype
      * @return optimization solution partial object with a single candidate that is the best candidate in full dimension
      */
     static CMASolutions optimize_pk(FitFunc &func,
 				    const CMAParameters<TGenoPheno> &parameters,
 				    const CMASolutions &cmasol,
 				    const int &k,
-				    const dVec &vk);
+				    const double &vk,
+				    const dVec &x0,
+				    const bool &pheno_x0=true,
+				    const bool &pheno_vk=true);
     
     /*- contour -*/
     public:

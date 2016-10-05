@@ -149,6 +149,15 @@ namespace libcmaes
       }
 
       /**
+       * \brief returns initial sigma value
+       * @return initial sigma value
+       */
+      double get_sigma_init() const
+      {
+	return _sigma_init;
+      }
+
+      /**
        * \brief activates the gradient injection scheme. 
        *        If no gradient function is defined, injects a numerical gradient solution instead
        *        Note: overrides Parameters::set_gradient
@@ -184,7 +193,7 @@ namespace libcmaes
       bool is_vd() const { return _vd; }
       
       /**
-       * \brief freezes a parameter to a given value during optimization.
+       * \brief freezes a parameter to a given value in genotype during optimization.
        *        Adapts some generic parameters as well.
        * @param index dimension index of the parameter to be frozen
        * @param value frozen value of the parameter
